@@ -7,52 +7,44 @@ from collections import deque
 from math import inf
 
 def adjacency_list(graph_str):
-    '''g'''
-    if not graph_str:
-        return []
-    if graph_str[-1] == "\n":
-        graph_str = graph_str[:-1]#remove last \n
-    data = graph_str.split("\n")
-    directed = data[0].split(' ')[0] == 'D'
-    n = int(data[0].split(' ')[1])
-    E = [x.split(" ") for x in data[1:]]
-    weighted = False
-    if E:
-        weighted = len(E[0]) > 2
+    """
+    converts a graph_str to a list of edges for each vertex
+        (e.g. adj_list[0] == list of all edges from vertex 0)
+    """
+    rows = (graph_str.rstrip()).split("\n")
+    top_row_data = rows[0].split()
+    directed, n = top_row_data[0] == 'D', int(top_row_data[1])
+    weighted = True if len(top_row_data) > 2 and top_row_data[2] == 'W' else False
 
-    #print("D:", directed, "n:", n, "W:", weighted)
-    #print(E)
-
-    output = []
-    for i in range(n):
-        temp = []
-        for j in range(len(E)):
-            start_vertex = int(E[j][0])
-            end_vertex = int(E[j][1])
-            if start_vertex == i or end_vertex == i:
-                weight = None
-                if weighted:
-                    weight = int(E[j][2])
-                if directed and start_vertex == i:
-                    temp.append((end_vertex, weight))
-                elif start_vertex == i:
-                    temp.append((end_vertex, weight))
-                if not directed and end_vertex == i:
-                    temp.append((start_vertex, weight))
-        output.append(temp)
-
+    output = [[] for i in range(n)]
+    for row in rows[1:]:
+        row_data = row.split()
+        src, dst = int(row_data[0]), int(row_data[1])
+        cost = int(row_data[2]) if weighted else None
+        output[src].append((dst, cost))
+        if not directed:
+            output[dst].append((src, cost))
+    
     return output
 
 
+
 def dijkstra(adj_list, start):
-    '''g'''
+    """
+    Given a graph with non-negative edge weights and a starting vertex, the al-
+    gorithm finds the shortest path from the starting vertex to any other vertex
+    reachable from it.
+    
+    The algorithm gradually grows a shortest path tree rooted at the starting
+    vertex. In each iteration, a new edge is added to the tree by selecting an edge
+    that connects a vertex in the tree to a vertex outside that is closest to the
+    starting vertex.
+    """
     n = len(adj_list)
-    if n == 0:
-        return [], []
     in_tree = [False for x in range(n)]
     distance = [float('inf') for x in range(n)]
     parent = [None for x in range(n)]
-    distance[start] = 0
+    distance[s] = 0
     while not all(in_tree):
         u = next_vertex(in_tree, distance)
         in_tree[u] = True
@@ -60,27 +52,28 @@ def dijkstra(adj_list, start):
             if not in_tree[v] and (distance[u] + weight) < distance[v]:
                 distance[v] = distance[u] + weight
                 parent[v] = u
-
     return parent, distance
 
 
 def next_vertex(in_tree, distance):
-    '''g'''
-    d = None
-    for i, node_in_tree in enumerate(in_tree):
-        if not node_in_tree:
-            if d == None:
-                d = i
-            if distance[i] < distance[d]:
-                d = i
-    return d
+    """
+    Function used by the prim mst and dijkstra algorithms.
+    Given a distance array, finds the next un-discovered vertex with the lowest cost.
+    """
+    n = None
+    for i, vertex in enumerate(in_tree):
+        # vertex not reached yet, and (init or lower cost vertex found)
+        if not vertex and (n == None or distance[i] < distance[n]):
+            n = i
+    return n
+
 
 def next_hop(parent, start):
     if parent[start] == None:
         return start
     elif parent[parent[start]] == None:
         return start
-    return next_hop(parent,parent[start])
+    return next_hop(parent, parent[start])
 
 # 2nd number in top line is number vertices + 1
 graph_string = """\
